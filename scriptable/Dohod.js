@@ -31,7 +31,6 @@ const INCOME_WORDS = /зарплат|\bзп\b|аванс|премия|доход
 
 function load() {
   try {
-    if (fm.isFileStoredIniCloud && fm.fileExists(PATH)) {} 
     if (!fm.fileExists(PATH)) return [];
     if (fm.downloadFileFromiCloud) fm.downloadFileFromiCloud(PATH);
     return JSON.parse(fm.readString(PATH));
@@ -41,7 +40,10 @@ function save(list) { fm.writeString(PATH, JSON.stringify(list)); }
 
 const money = n => n.toLocaleString("ru-RU", { maximumFractionDigits: 2 }) + " " + CUR;
 const monthKey = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
-const guess = (type, text) => (KEYWORDS[type].find(([, re]) => re.test(text)) || [, , ])[0] || "Другое";
+const guess = (type, text) => {
+  const hit = KEYWORDS[type].find(([, re]) => re.test(text));
+  return hit ? hit[0] : "Другое";
+};
 
 // "кофе 300", "+50000 зарплата", "такси 1,5к"
 function parseQuick(q) {

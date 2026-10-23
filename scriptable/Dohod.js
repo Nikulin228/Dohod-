@@ -3,7 +3,7 @@
 // Данные лежат в файле dohod.json в папке Scriptable (iCloud, если он включён).
 
 const fm = FileManager.iCloud ? FileManager.iCloud() : FileManager.local();
-const PATH = fm.joinPath(fm.documentDirectory(), "dohod.json");
+const PATH = fm.joinPath(fm.documentsDirectory(), "dohod.json");
 const CUR = "₽";
 
 const CATS = {

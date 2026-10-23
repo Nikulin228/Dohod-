@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Деньги</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Деньги">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1115">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <button id="prev" aria-label="Предыдущий месяц">‹</button>
+    <h1 id="monthTitle"></h1>
+    <button id="next" aria-label="Следующий месяц">›</button>
+  </header>
+
+  <section class="summary">
+    <div><span>Доходы</span><b id="sumIn" class="in"></b></div>
+    <div><span>Расходы</span><b id="sumOut" class="out"></b></div>
+    <div><span>Баланс</span><b id="sumBal"></b></div>
+  </section>
+
+  <section id="byCat" class="cats"></section>
+
+  <section>
+    <ul id="list" class="list"></ul>
+    <p id="empty" class="empty" hidden>В этом месяце записей нет.<br>Нажмите «+», чтобы добавить.</p>
+  </section>
+
+  <section class="tools">
+    <button id="btnHelp">Быстрая команда</button>
+    <button id="btnExport">Экспорт CSV</button>
+    <button id="btnBackup">Резервная копия</button>
+    <label class="btn">Восстановить<input id="fileRestore" type="file" accept="application/json" hidden></label>
+  </section>
+</main>
+
+<button id="fab" aria-label="Добавить">+</button>
+
+<dialog id="dlg">
+  <form method="dialog" id="form">
+    <div class="seg">
+      <input type="radio" name="type" id="tOut" value="expense" checked><label for="tOut">Расход</label>
+      <input type="radio" name="type" id="tIn" value="income"><label for="tIn">Доход</label>
+    </div>
+    <input id="amount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Сумма" required>
+    <select id="category"></select>
+    <input id="note" type="text" placeholder="Заметка (необязательно)" autocomplete="off">
+    <input id="date" type="date" required>
+    <div class="row">
+      <button type="button" id="btnCancel">Отмена</button>
+      <button type="submit" class="primary" id="btnSave">Сохранить</button>
+    </div>
+    <button type="button" id="btnDelete" class="danger" hidden>Удалить запись</button>
+  </form>
+</dialog>
+
+<dialog id="help">
+  <div class="helpbody">
+    <h2>Быстрая команда (Siri / «Команды»)</h2>
+    <p>Приложение принимает запись прямо из ссылки. Адрес вашего приложения:</p>
+    <code id="baseUrl"></code>
+    <p><b>Формат:</b></p>
+    <code>?q=кофе 300</code>
+    <p>Первое число — сумма, остальное — заметка (категория определяется по слову). Если начать с «+» или слова «зарплата», это доход: <code>?q=+50000 зарплата</code></p>
+    <p>Полная форма: <code>?type=expense&amp;amount=300&amp;cat=Еда&amp;note=кофе</code></p>
+    <h3>Как создать команду</h3>
+    <ol>
+      <li>Откройте приложение «Команды» → «+».</li>
+      <li>Действие «Запросить ввод» (Ask for Input) — вопрос «Что и сколько?».</li>
+      <li>Действие «Закодировать URL» (URL Encode) от «Предоставленного ввода».</li>
+      <li>Действие «Текст»: <code id="shortcutText"></code> и вставьте закодированный текст вместо <i>ТЕКСТ</i>.</li>
+      <li>Действие «Открыть URL» с этим текстом.</li>
+      <li>Назовите команду, например «Трата», — и скажите: «Привет, Siri, Трата». Можно вынести на экран «Домой» или кнопку действия.</li>
+    </ol>
+    <button id="btnCopyUrl">Скопировать ссылку</button>
+    <button id="btnHelpClose" class="primary">Закрыть</button>
+  </div>
+</dialog>
+
+<div id="toast" role="status"></div>
+<script src="app.js"></script>
+</body>
+</html>

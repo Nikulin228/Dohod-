@@ -40,6 +40,9 @@ let records = store.load();
 let currency = localStorage.getItem('dohod.currency') || '₽';
 let view = new Date(); view.setDate(1);
 let editingId = null;
+let tab = 'list', period = 'month', statType = 'expense';
+const COLORS = ['#5b8cff', '#ff6b6b', '#ffb84d', '#3ddc97', '#b57bff', '#4dd0e1', '#ff8fc7', '#a3be5c', '#9aa3b5'];
+const yearMode = () => tab === 'stats' && period === 'year';
 
 const pad = n => String(n).padStart(2, '0');
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -108,7 +111,16 @@ function esc(s) {
 
 function render() {
   const key = `${view.getFullYear()}-${pad(view.getMonth() + 1)}`;
-  $('monthTitle').textContent = view.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+  const title = yearMode() ? String(view.getFullYear())
+    : view.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(' г.', '');
+  $('monthTitle').textContent = title.charAt(0).toUpperCase() + title.slice(1);
+  $('viewList').hidden = tab !== 'list';
+  $('viewStats').hidden = tab !== 'stats';
+  $('tools').hidden = tab !== 'list';
+  $('periodSeg').hidden = tab !== 'stats';
+  $('tabList').classList.toggle('on', tab === 'list');
+  $('tabStats').classList.toggle('on', tab === 'stats');
+  if (tab === 'stats') { renderStats(); return; }
   const list = records.filter(r => r.date.startsWith(key))
     .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
 
@@ -144,6 +156,84 @@ function render() {
   $('list').innerHTML = html;
 }
 
+function polar(cx, cy, r, deg) {
+  const t = (deg - 90) * Math.PI / 180;
+  return [cx + r * Math.cos(t), cy + r * Math.sin(t)];
+}
+
+function donutSvg(items, total) {
+  const cx = 110, cy = 110, R = 90, r = 58;
+  let paths = '';
+  if (items.length === 1) {
+    paths = `<circle cx="${cx}" cy="${cy}" r="${(R + r) / 2}" fill="none" stroke="${items[0].color}" stroke-width="${R - r}"/>`;
+  } else {
+    let acc = 0;
+    for (const it of items) {
+      const sweep = it.value / total * 360;
+      const [x1, y1] = polar(cx, cy, R, acc), [x2, y2] = polar(cx, cy, R, acc + sweep);
+      const [x3, y3] = polar(cx, cy, r, acc + sweep), [x4, y4] = polar(cx, cy, r, acc);
+      const big = sweep > 180 ? 1 : 0;
+      paths += `<path d="M${x1} ${y1} A${R} ${R} 0 ${big} 1 ${x2} ${y2} L${x3} ${y3} A${r} ${r} 0 ${big} 0 ${x4} ${y4}Z" fill="${it.color}" stroke="var(--card)" stroke-width="2"/>`;
+      acc += sweep;
+    }
+  }
+  return `<svg viewBox="0 0 220 220" style="max-width:260px;margin:0 auto">${paths}
+    <text x="110" y="104" text-anchor="middle" class="chartsub">${statType === 'income' ? 'Доходы' : 'Расходы'}</text>
+    <text x="110" y="128" text-anchor="middle" class="chartmain">${esc(money(total))}</text></svg>`;
+}
+
+function barsSvg() {
+  const months = [];
+  for (let i = 5; i >= 0; i--) months.push(new Date(view.getFullYear(), view.getMonth() - i, 1));
+  const data = months.map(d => {
+    const k = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+    const sum = t => records.filter(r => r.type === t && r.date.startsWith(k)).reduce((s, r) => s + r.amount, 0);
+    return { label: d.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', ''), inc: sum('income'), out: sum('expense') };
+  });
+  const max = Math.max(1, ...data.flatMap(d => [d.inc, d.out]));
+  const H = 120, W = 320, step = W / 6, bw = 14;
+  let g = '';
+  data.forEach((d, i) => {
+    const x = i * step + step / 2;
+    const hi = d.inc / max * H, ho = d.out / max * H;
+    g += `<rect x="${x - bw - 1}" y="${H - hi + 10}" width="${bw}" height="${hi}" rx="3" fill="var(--in)"/>
+          <rect x="${x + 1}" y="${H - ho + 10}" width="${bw}" height="${ho}" rx="3" fill="var(--out)"/>
+          <text x="${x}" y="${H + 26}" text-anchor="middle" class="chartsub">${esc(d.label)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H + 32}">${g}</svg>
+    <div class="legend" style="display:flex;gap:16px;justify-content:center;font-size:13px;color:var(--muted)">
+      <span><b class="in">●</b> Доходы</span><span><b class="out">●</b> Расходы</span></div>`;
+}
+
+function renderStats() {
+  const key = yearMode() ? String(view.getFullYear())
+    : `${view.getFullYear()}-${pad(view.getMonth() + 1)}`;
+  const list = records.filter(r => r.date.startsWith(key));
+  const sum = t => list.filter(r => r.type === t).reduce((s, r) => s + r.amount, 0);
+  const inc = sum('income'), out = sum('expense');
+  $('sumIn').textContent = money(inc);
+  $('sumOut').textContent = money(out);
+  $('sumBal').textContent = money(inc - out);
+  $('sumBal').className = inc - out >= 0 ? 'in' : 'out';
+
+  const by = {};
+  list.filter(r => r.type === statType).forEach(r => { by[r.cat] = (by[r.cat] || 0) + r.amount; });
+  const total = statType === 'income' ? inc : out;
+  const items = Object.entries(by).sort((x, y) => y[1] - x[1])
+    .map(([cat, value], i) => ({ cat, value, color: COLORS[i % COLORS.length] }));
+  if (!items.length) {
+    $('donut').innerHTML = '<p class="empty">Нет данных за этот период</p>';
+    $('legend').innerHTML = '';
+  } else {
+    $('donut').innerHTML = donutSvg(items, total);
+    $('legend').innerHTML = items.map(it => `
+      <div class="lg"><i class="dot" style="background:${it.color}"></i>
+      <span class="nm">${CATS[statType][it.cat] || '💸'} ${esc(it.cat)}</span>
+      <b>${esc(money(it.value))}</b><span class="pc">${Math.round(it.value / total * 100)}%</span></div>`).join('');
+  }
+  $('bars').innerHTML = barsSvg();
+}
+
 function fillCategories(type, selected) {
   $('category').innerHTML = Object.keys(CATS[type])
     .map(c => `<option ${c === selected ? 'selected' : ''}>${esc(c)}</option>`).join('');
@@ -171,8 +261,13 @@ function download(name, text, mime) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-$('prev').onclick = () => { view.setMonth(view.getMonth() - 1); render(); };
-$('next').onclick = () => { view.setMonth(view.getMonth() + 1); render(); };
+const step = n => { view.setMonth(view.getMonth() + (yearMode() ? 12 : 1) * n); render(); };
+$('prev').onclick = () => step(-1);
+$('next').onclick = () => step(1);
+$('tabList').onclick = () => { tab = 'list'; render(); };
+$('tabStats').onclick = () => { tab = 'stats'; render(); };
+document.querySelectorAll('input[name=period]').forEach(r => r.onchange = () => { period = r.value; render(); });
+document.querySelectorAll('input[name=stype]').forEach(r => r.onchange = () => { statType = r.value; render(); });
 $('fab').onclick = () => openForm(null);
 $('btnCancel').onclick = () => $('dlg').close();
 document.querySelectorAll('input[name=type]').forEach(r => r.onchange = () => fillCategories(currentType()));

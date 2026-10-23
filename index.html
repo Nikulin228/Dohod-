@@ -21,20 +21,37 @@
     <button id="next" aria-label="Следующий месяц">›</button>
   </header>
 
+  <div id="periodSeg" class="seg small" hidden>
+    <input type="radio" name="period" id="pM" value="month" checked><label for="pM">Месяц</label>
+    <input type="radio" name="period" id="pY" value="year"><label for="pY">Год</label>
+  </div>
+
   <section class="summary">
     <div><span>Доходы</span><b id="sumIn" class="in"></b></div>
     <div><span>Расходы</span><b id="sumOut" class="out"></b></div>
     <div><span>Баланс</span><b id="sumBal"></b></div>
   </section>
 
-  <section id="byCat" class="cats"></section>
+  <div id="viewList">
+    <section id="byCat" class="cats"></section>
+    <section>
+      <ul id="list" class="list"></ul>
+      <p id="empty" class="empty" hidden>В этом месяце записей нет.<br>Нажмите «+», чтобы добавить.</p>
+    </section>
+  </div>
 
-  <section>
-    <ul id="list" class="list"></ul>
-    <p id="empty" class="empty" hidden>В этом месяце записей нет.<br>Нажмите «+», чтобы добавить.</p>
-  </section>
+  <div id="viewStats" hidden>
+    <div class="seg small">
+      <input type="radio" name="stype" id="sOut" value="expense" checked><label for="sOut">Расходы</label>
+      <input type="radio" name="stype" id="sIn" value="income"><label for="sIn">Доходы</label>
+    </div>
+    <div id="donut" class="card"></div>
+    <div id="legend" class="legend"></div>
+    <h3 class="sect">Последние 6 месяцев</h3>
+    <div id="bars" class="card"></div>
+  </div>
 
-  <section class="tools">
+  <section class="tools" id="tools">
     <button id="btnHelp">Быстрая команда</button>
     <button id="btnExport">Экспорт CSV</button>
     <button id="btnBackup">Резервная копия</button>
@@ -43,6 +60,11 @@
 </main>
 
 <button id="fab" aria-label="Добавить">+</button>
+
+<nav id="tabs">
+  <button id="tabList" class="on"><span>📋</span>Записи</button>
+  <button id="tabStats"><span>📊</span>Аналитика</button>
+</nav>
 
 <dialog id="dlg">
   <form method="dialog" id="form">
